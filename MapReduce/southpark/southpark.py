@@ -1,7 +1,7 @@
 import sys
 import csv
 
-sys.path.insert(0, str(sys.path[0]) + "/mincemeatpy")
+sys.path.insert(0, "./mincemeatpy")
 import mincemeat
 
 if len(sys.argv) != 2:
