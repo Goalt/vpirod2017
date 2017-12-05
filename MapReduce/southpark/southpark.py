@@ -1,7 +1,5 @@
 import sys
 import csv
-
-sys.path.insert(0, "./mincemeatpy")
 import mincemeat
 
 if len(sys.argv) != 2:
@@ -43,3 +41,6 @@ outputFile = open("results.csv", "w")
 outputFile.write("Name,Language Wealth\r\n")
 for i in results.keys():
     outputFile.write(i + "," + str(results[i]) + "\r\n")
+    
+outputFile.close()
+inputFile.close()
