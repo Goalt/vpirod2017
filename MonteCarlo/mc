@@ -1,0 +1,3 @@
+#!/bin/bash
+N=100
+for i in $(seq "$N"); do echo "$RANDOM/32768" | bc -l; done | parallel echo 'e\({}\)' | bc -l | (tr "\012" "+" ; echo "0") | bc -l | xargs printf "%f/$N\n" | bc -l
