@@ -32,25 +32,19 @@ def mapfn(k, v):
 def reducefn(k, vs):
     return sum(vs)
 
-def mapfn2(k, v):
-    yield k[1], (k[0], v) 
-
-def reducefn2(k, vs):
-    result = {}
-    for i in vs:
-        result[i[0]] = i[1]
-    return result
-
 s = mincemeat.Server()
 s.datasource = datasource
 s.mapfn = mapfn
 s.reducefn = reducefn
-results = s.run_server(password="changeme")
+tmp = s.run_server(password="changeme")
 
-s.datasource = results
-s.mapfn = mapfn2
-s.reducefn = reducefn2
-results = s.run_server(password="changeme")
+results = {}
+for k in tmp.keys():
+    if results.get(k[1]) is None:
+        results[k[1]] = {}
+    if results[k[1]].get(k[0]) is None:
+        results[k[1]][k[0]] = 0
+    results[k[1]][k[0]] += tmp[k]
 
 outputFile = open("results.csv", "w")
 outputFile.write("Word")
