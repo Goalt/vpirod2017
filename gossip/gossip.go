@@ -103,8 +103,6 @@ func sendGoRoutine(connectionGraph graph.Graph, startPort int, myIndex int, time
 			ticksChannel <- numberOfTicks
 		case <-closeChannel:
 		case msg := <-channelBetweenRecieveAndSend:
-
-			numberOfTicks += 1
 			var sen Message
 			json.Unmarshal(msg, &sen)
 
@@ -144,8 +142,8 @@ func sendGoRoutine(connectionGraph graph.Graph, startPort int, myIndex int, time
 			}
 
 		default:
-			// numberOfTicks += 1
-			// time.Sleep(time.Millisecond * time.Duration(timeout))
+			numberOfTicks += 1
+			time.Sleep(time.Millisecond * time.Duration(timeout))
 		}
 	}
 }
