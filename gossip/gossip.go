@@ -96,21 +96,25 @@ func sendGoRoutine(connectionGraph graph.Graph, startPort int, myIndex int, time
 	myPort := startPort + myIndex
 	myAddress := "127.0.0.1:" + strconv.Itoa(myPort)
 	numberOfTicks := 0
+
 	for {
 		select {
 		case <-ticksChannel:
 			ticksChannel <- numberOfTicks
 		case <-closeChannel:
 		case msg := <-channelBetweenRecieveAndSend:
-			var neighbours []int
+
+			numberOfTicks += 1
 			var sen Message
 			json.Unmarshal(msg, &sen)
 
+			var neighbours []int
 			neighboursNodes, _ := connectionGraph.Neighbors(myIndex)
 			for i := range neighboursNodes {
 				nei, _ := strconv.Atoi(neighboursNodes[i].String())
 				neighbours = append(neighbours, nei)
 			}
+
 			index := -1
 			for i, mas := range neighbours {
 				if mas == sen.Sender {
@@ -138,9 +142,10 @@ func sendGoRoutine(connectionGraph graph.Graph, startPort int, myIndex int, time
 				numberOfTicks += 1
 				time.Sleep(time.Millisecond * time.Duration(timeout))
 			}
+
 		default:
-			numberOfTicks += 1
-			time.Sleep(time.Millisecond * time.Duration(timeout))
+			// numberOfTicks += 1
+			// time.Sleep(time.Millisecond * time.Duration(timeout))
 		}
 	}
 }
@@ -163,9 +168,8 @@ func loopReceiveSend(connectionGraph graph.Graph, startPort int, myIndex int, ti
 	<-breakChannel
 	ticksChannel <- 0
 	numberOfTicks := <-ticksChannel
+	fmt.Println("Number of ticks: ", numberOfTicks)
 	close(closeChannel)
-
-	fmt.Println("Cnt ticks = ", numberOfTicks)
 }
 
 func main() {
