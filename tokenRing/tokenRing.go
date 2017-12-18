@@ -98,16 +98,13 @@ func loop(myIndex int, numberNodes int, timeout int) {
 		fmt.Println("Node", myIndex, ": Token Started")
 	}
 
-	waitTime := time.Millisecond * time.Duration(timeout*(numberNodes+5))
-	//waitTime := time.Millisecond*time.Duration(myIndex) + time.Millisecond*time.Duration(timeout*numberNodes)
-	//waitTime := time.Millisecond * time.Duration(timeout*numberNodes+2)
+	waitTime := time.Millisecond * time.Duration((timeout+10)*(2*numberNodes))
 	timer := time.NewTimer(waitTime)
 	var recServiceMessage serviceMessage = serviceMessage{"empty", 0, ""}
 
 	for {
 		select {
 		case recToken := <-listenChannel:
-
 			time.Sleep(time.Millisecond * time.Duration(timeout))
 
 			if recServiceMessage.TypeMessage == "empty" {
@@ -120,8 +117,9 @@ func loop(myIndex int, numberNodes int, timeout int) {
 
 			if recServiceMessage.TypeMessage == "drop" {
 				recServiceMessage = serviceMessage{"empty", 0, ""}
-				//time.Sleep(time.Millisecond * time.Duration(timeout))
-				timer.Stop()
+				if !timer.Stop() {
+					<-timer.C
+				}
 				timer.Reset(waitTime)
 				continue
 			}
@@ -134,7 +132,7 @@ func loop(myIndex int, numberNodes int, timeout int) {
 				}
 
 				if recToken.Mess.Dst == myIndex && recToken.Mess.Type == "notification" {
-					recToken.Mess = Message{"", "", 0, 0}
+					recToken.Mess = Message{"empty", "", 0, 0}
 				}
 			} else if recServiceMessage.TypeMessage == "send" {
 				recToken.Mess = Message{"send", recServiceMessage.Data, myIndex, recServiceMessage.Dst}
@@ -144,17 +142,18 @@ func loop(myIndex int, numberNodes int, timeout int) {
 			tokenJSON, _ := json.Marshal(recToken)
 			sendMessage(tokenJSON, "127.0.0.1:"+strconv.Itoa(5000+myIndex), "127.0.0.1:"+strconv.Itoa(3000+(myIndex+1)%numberNodes))
 
-			timer.Stop()
+			if !timer.Stop() {
+				<-timer.C
+			}
 			timer.Reset(waitTime)
 			continue
 		case <-timer.C:
 			fmt.Println("Node", myIndex, ": Timer Fired ON!")
+
 			send := Token{myIndex, Message{"empty", "", 0, 0}}
 			tokenJSON, _ := json.Marshal(send)
 			sendMessage(tokenJSON, "127.0.0.1:"+strconv.Itoa(5000+myIndex), "127.0.0.1:"+strconv.Itoa(3000+(myIndex+1)%numberNodes))
 			fmt.Println("Node", myIndex, ": Token Started")
-
-			timer.Stop()
 			timer.Reset(waitTime)
 		default:
 		}
