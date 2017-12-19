@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -107,6 +109,49 @@ func loop(myIndex int, numberNodes int, timeout int) {
 		case recToken := <-listenChannel:
 			time.Sleep(time.Millisecond * time.Duration(timeout))
 
+			if recToken.Mess.Type == "electionResult" {
+				fmt.Println("Node", myIndex, ": recieved token", recToken)
+
+				if recToken.Mess.Dst == myIndex {
+					fmt.Println("Node", myIndex, ": Election Done")
+					send := Token{myIndex, Message{"empty", "", 0, 0}}
+					tokenJSON, _ := json.Marshal(send)
+					sendMessage(tokenJSON, "127.0.0.1:"+strconv.Itoa(5000+myIndex), "127.0.0.1:"+strconv.Itoa(3000+(myIndex+1)%numberNodes))
+					fmt.Println("Node", myIndex, ": Token Started")
+
+				} else {
+					tokenJSON, _ := json.Marshal(recToken)
+					sendMessage(tokenJSON, "127.0.0.1:"+strconv.Itoa(5000+myIndex), "127.0.0.1:"+strconv.Itoa(3000+(myIndex+1)%numberNodes))
+				}
+
+				if !timer.Stop() {
+					<-timer.C
+				}
+				timer.Reset(waitTime)
+				continue
+			}
+
+			if recToken.Mess.Type == "election" {
+				fmt.Println("Node", myIndex, ": recieved token", recToken)
+				if recToken.Mess.Dst == myIndex {
+					data := strings.Split(recToken.Mess.Data, " ")
+					data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
+					sort.Strings(data)
+					where, _ := strconv.Atoi(data[0])
+					recToken.Mess = Message{"electionResult", "", myIndex, where}
+				} else {
+					recToken.Mess.Data = recToken.Mess.Data + " " + strconv.Itoa(myIndex)
+				}
+
+				tokenJSON, _ := json.Marshal(recToken)
+				sendMessage(tokenJSON, "127.0.0.1:"+strconv.Itoa(5000+myIndex), "127.0.0.1:"+strconv.Itoa(3000+(myIndex+1)%numberNodes))
+				if !timer.Stop() {
+					<-timer.C
+				}
+				timer.Reset(waitTime)
+				continue
+			}
+
 			if recServiceMessage.TypeMessage == "empty" {
 				select {
 				case recServiceMessage = <-serviceChannel:
@@ -149,11 +194,10 @@ func loop(myIndex int, numberNodes int, timeout int) {
 			continue
 		case <-timer.C:
 			fmt.Println("Node", myIndex, ": Timer Fired ON!")
-
-			send := Token{myIndex, Message{"empty", "", 0, 0}}
+			fmt.Println("Node", myIndex, ": Election started")
+			send := Token{myIndex, Message{"election", strconv.Itoa(myIndex), 0, myIndex}}
 			tokenJSON, _ := json.Marshal(send)
 			sendMessage(tokenJSON, "127.0.0.1:"+strconv.Itoa(5000+myIndex), "127.0.0.1:"+strconv.Itoa(3000+(myIndex+1)%numberNodes))
-			fmt.Println("Node", myIndex, ": Token Started")
 			timer.Reset(waitTime)
 		default:
 		}
